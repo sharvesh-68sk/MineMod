@@ -1,20 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MineMod</title>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+  padding:20px;
+}
+
+h1{
+  color:#22c55e;
+}
+
+.container{
+  background:#111827;
+  padding:20px;
+  border-radius:12px;
+  max-width:500px;
+  margin:auto;
+  box-shadow:0 0 10px rgba(0,0,0,0.5);
+}
+
+label{
+  display:block;
+  margin:10px;
+  font-size:18px;
+}
+
+button{
+  background:#22c55e;
+  border:none;
+  padding:12px 20px;
+  font-size:18px;
+  border-radius:8px;
+  cursor:pointer;
+  margin-top:15px;
+}
+
+button:hover{
+  background:#16a34a;
+}
+
+.footer{
+  margin-top:20px;
+  opacity:0.7;
+}
+</style>
 </head>
+
 <body>
 
 <h1>MineMod</h1>
-<p>Select your mods and download them in one click.</p>
+<p>Select mods and download in one click</p>
+
+<div class="container">
 
 <h3>Select Mods</h3>
-<label><input type="checkbox"> Sodium</label><br>
-<label><input type="checkbox"> Lithium</label><br>
-<label><input type="checkbox"> FerriteCore</label><br>
 
-<br>
-<button>Generate Pack</button>
+<label><input type="checkbox" value="sodium"> Sodium (FPS Boost)</label>
+<label><input type="checkbox" value="lithium"> Lithium (Performance)</label>
+<label><input type="checkbox" value="ferrite-core"> FerriteCore (RAM Optimize)</label>
+<label><input type="checkbox" value="modmenu"> Mod Menu</label>
+<label><input type="checkbox" value="iris"> Iris Shaders</label>
+
+<button onclick="generatePack()">Download Pack</button>
+
+</div>
+
+<div class="footer">
+MineMod © 2026
+</div>
+
+<script>
+function generatePack() {
+
+const selected = [...document.querySelectorAll('input:checked')]
+.map(el => ({
+  project_id: el.value
+}));
+
+if(selected.length === 0){
+  alert("Select at least one mod");
+  return;
+}
+
+const pack = {
+  formatVersion: 1,
+  game: "minecraft",
+  versionId: "1.20.1",
+  name: "MineMod Custom Pack",
+  summary: "Generated from MineMod",
+  files: selected
+};
+
+const blob = new Blob([JSON.stringify(pack, null, 2)], {
+type: "application/json"
+});
+
+const a = document.createElement("a");
+a.href = URL.createObjectURL(blob);
+a.download = "MineMod-Pack.mrpack";
+a.click();
+}
+</script>
 
 </body>
 </html>
