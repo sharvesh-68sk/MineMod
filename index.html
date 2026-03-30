@@ -4,58 +4,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MineMod Advanced</title>
+<title>MineMod API</title>
 
 <style>
-body{
-background:#0b1120;
-color:white;
-font-family:Arial;
-margin:0;
-}
-header{
-padding:15px;
-background:#020617;
-text-align:center;
-font-size:22px;
-font-weight:bold;
-}
-.controls{
-padding:15px;
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-justify-content:center;
-}
-input,select{
-padding:10px;
-border-radius:8px;
-border:none;
-}
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:15px;
-padding:20px;
-}
-.card{
-background:#111827;
-padding:15px;
-border-radius:10px;
-border:1px solid #1f2937;
-}
-.actions{
-text-align:center;
-padding:20px;
-}
-button{
-padding:12px 18px;
-margin:5px;
-border:none;
-border-radius:8px;
-cursor:pointer;
-font-weight:bold;
-}
+body{background:#0b1120;color:white;font-family:Arial;margin:0;}
+header{padding:15px;background:#020617;text-align:center;font-size:22px;font-weight:bold;}
+.controls{padding:15px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+input,select{padding:10px;border-radius:8px;border:none;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:15px;padding:20px;}
+.card{background:#111827;padding:15px;border-radius:10px;border:1px solid #1f2937;text-align:center;}
+.card img{width:64px;height:64px;border-radius:12px;margin-bottom:10px;}
+.actions{text-align:center;padding:20px;}
+button{padding:12px 18px;margin:5px;border:none;border-radius:8px;cursor:pointer;font-weight:bold;}
 .download{background:#22c55e;}
 .clear{background:#ef4444;color:white;}
 </style>
@@ -64,86 +24,66 @@ font-weight:bold;
 
 <body>
 
-<header>🎮 MineMod Advanced</header>
+<header>🎮 MineMod API Builder</header>
 
 <div class="controls">
-<input type="text" id="search" placeholder="Search mods..." oninput="render()">
-<select id="loader" onchange="render()">
-<option value="all">All</option>
+<input type="text" id="search" placeholder="Search mods...">
+<select id="loader">
 <option value="fabric">Fabric</option>
 <option value="forge">Forge</option>
+<option value="quilt">Quilt</option>
 </select>
 <select id="version">
-<option value="1.21.1">1.21.1</option>
 <option value="1.20.1">1.20.1</option>
+<option value="1.20">1.20</option>
 <option value="1.19.4">1.19.4</option>
- <option value="1.18.4">1.18.4</option>
 </select>
+<button onclick="loadMods()">Search</button>
 </div>
 
 <div class="grid" id="mods"></div>
 
 <div class="actions">
-<button class="download" onclick="downloadMods()">Download Selected</button>
+<button class="download" onclick="downloadSelected()">Download Selected</button>
 <button class="clear" onclick="clearSelection()">Clear</button>
 </div>
 
 <script>
-const mods=[
-{
-name:"Sodium",
-loader:"fabric",
-slug:"sodium"
-},
-{
-name:"Lithium",
-loader:"fabric",
-slug:"lithium"
-},
-{
-name:"Iris",
-loader:"fabric",
-slug:"iris"
-},
-{
-name:"JEI",
-loader:"forge",
-slug:"jei"
-},
-{
-name:"Create",
-loader:"forge",
-slug:"create"
-}
-];
+let selected = new Map();
+let currentMods = [];
 
-let selected=new Set();
+async function loadMods(){
+const query = document.getElementById("search").value || "performance";
+const loader = document.getElementById("loader").value;
+const version = document.getElementById("version").value;
+
+const url = `https://api.modrinth.com/v2/search?query=${query}&facets=[["categories:${loader}"],["versions:${version}"]]`;
+
+const res = await fetch(url);
+const data = await res.json();
+
+currentMods = data.hits;
+render();
+}
 
 function render(){
 const grid=document.getElementById("mods");
 grid.innerHTML="";
-const search=document.getElementById("search").value.toLowerCase();
-const loader=document.getElementById("loader").value;
 
-mods
-.filter(m=>{
-return(
-m.name.toLowerCase().includes(search) &&
-(loader==="all"||m.loader===loader)
-);
-})
-.forEach(mod=>{
+currentMods.forEach(mod=>{
+const icon = mod.icon_url || "https://cdn.modrinth.com/data/cached_images/default.png";
+
 const card=document.createElement("div");
 card.className="card";
 
 card.innerHTML=`
+<img src="${icon}">
+<h3>${mod.title}</h3>
+<p style="font-size:12px">${mod.description || ""}</p>
 <label>
-<input type="checkbox" ${selected.has(mod.slug)?"checked":""}
-onchange="toggle('${mod.slug}')">
- ${mod.name}
+<input type="checkbox" onchange="toggle('${mod.slug}')">
+ Select
 </label>
-<br>
-<small>${mod.loader}</small>
 `;
 
 grid.appendChild(card);
@@ -152,15 +92,15 @@ grid.appendChild(card);
 
 function toggle(slug){
 if(selected.has(slug)) selected.delete(slug);
-else selected.add(slug);
+else selected.set(slug,true);
 }
 
 function clearSelection(){
 selected.clear();
-render();
+document.querySelectorAll("input[type=checkbox]").forEach(c=>c.checked=false);
 }
 
-function downloadMods(){
+async function downloadSelected(){
 if(selected.size===0){
 alert("Select mods first");
 return;
@@ -169,16 +109,13 @@ return;
 let i=0;
 selected.forEach(slug=>{
 setTimeout(()=>{
-window.open(
-`https://modrinth.com/mod/${slug}/versions`,
-"_blank"
-);
-},i*700);
+window.open(`https://modrinth.com/mod/${slug}/versions`,"_blank");
+},i*800);
 i++;
 });
 }
 
-render();
+loadMods();
 </script>
 
 </body>
