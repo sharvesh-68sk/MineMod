@@ -1,174 +1,212 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html>
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>CraftPacks - Minecraft Modpack Builder</title>
-<meta name="description" content="Create Minecraft modpacks and auto download mods from Modrinth with CraftPacks.">
-<meta name="keywords" content="minecraft modpack builder, modrinth downloader, craftpacks">
-<meta name="robots" content="index, follow">
+<title>Minecraft Mod Updater</title>
 
 <style>
-body{background:#0b1120;color:white;font-family:Arial;margin:0}
-header{padding:15px;background:#020617;text-align:center;font-size:22px}
-.controls{text-align:center;padding:10px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px;padding:20px}
-.card{background:#111827;padding:15px;border-radius:10px;text-align:center}
-button{padding:8px 12px;margin:5px;border:none;border-radius:8px;cursor:pointer}
-input,select{padding:8px;border-radius:6px;border:none;margin:5px}
-</style>
+body{
+margin:0;
+background:#020617;
+color:white;
+font-family:Arial;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+}
 
+.container{
+width:520px;
+background:#0f172a;
+padding:25px;
+border-radius:16px;
+box-shadow:0 0 30px rgba(0,0,0,.6);
+}
+
+.drop{
+border:2px dashed #38bdf8;
+padding:30px;
+border-radius:12px;
+text-align:center;
+cursor:pointer;
+}
+
+.file{
+background:#1e293b;
+padding:10px;
+margin-top:10px;
+border-radius:8px;
+font-size:14px;
+}
+
+select,button{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:8px;
+border:none;
+}
+
+button{
+background:#2563eb;
+color:white;
+}
+
+#download{
+background:gray;
+cursor:not-allowed;
+}
+
+#download.active{
+background:#22c55e;
+cursor:pointer;
+}
+</style>
 </head>
 
 <body>
 
-<header>🎮 CraftPacks Builder</header>
+<div class="container">
 
-<section style="text-align:center;padding:15px">
-<h1>Minecraft Modpack Builder</h1>
-<p>Select mods and download automatically</p>
-</section>
+<h2>Minecraft Mod Updater</h2>
 
-<div class="controls">
-<input type="text" id="search" placeholder="Search mods..." oninput="render()">
+<div class="drop" id="drop">
+Drag & Drop Mods Here<br>or Click to Upload
+<input type="file" id="fileInput" multiple hidden>
+</div>
 
-<select id="version" onchange="render()">
-<option>1.20.1</option>
-<option>1.19.4</option>
+<div id="fileList"></div>
+
+<select id="targetVersion">
+<option value="1.20">Minecraft 1.20</option>
+<option value="1.21">Minecraft 1.21</option>
+<option value="1.22">Minecraft 1.22</option>
 </select>
 
-<select id="loader" onchange="render()">
-<option value="fabric">Fabric</option>
+<select id="loader">
 <option value="forge">Forge</option>
-<option value="quilt">Quilt</option>
+<option value="fabric">Fabric</option>
+<option value="neoforge">NeoForge</option>
 </select>
-</div>
 
-<div class="controls">
-<button onclick="selectGroup('fps')">FPS</button>
-<button onclick="selectGroup('performance')">Performance</button>
-<button onclick="selectGroup('qol')">QoL</button>
-<button onclick="selectGroup('shaders')">Shaders</button>
-</div>
+<button onclick="startAd()">Update & Watch Ad</button>
 
-<div class="grid" id="mods"></div>
+<button id="download" disabled onclick="downloadAll()">
+Download Updated Mods
+</button>
 
-<div style="text-align:center;padding:20px">
-<button onclick="downloadAll()">Download Selected</button>
 </div>
 
 <script>
 
-let selected = new Map();
-let mods = [];
+let files = [];
+let unlocked = false;
 
-async function loadMods(){
-const res = await fetch("https://api.modrinth.com/v2/search?query=optimization&limit=150");
-const data = await res.json();
-mods = data.hits;
-render();
+const drop = document.getElementById("drop");
+const input = document.getElementById("fileInput");
+const list = document.getElementById("fileList");
+
+drop.onclick = () => input.click();
+
+drop.addEventListener("dragover", e=>{
+e.preventDefault();
+});
+
+drop.addEventListener("drop", e=>{
+e.preventDefault();
+handleFiles(e.dataTransfer.files);
+});
+
+input.addEventListener("change", e=>{
+handleFiles(e.target.files);
+});
+
+function detectLoader(name){
+name = name.toLowerCase();
+
+if(name.includes("forge")) return "Forge";
+if(name.includes("fabric")) return "Fabric";
+if(name.includes("neoforge")) return "NeoForge";
+
+return "Unknown";
 }
 
-function render(){
+function handleFiles(fileList){
 
-const grid=document.getElementById("mods");
-grid.innerHTML="";
+for(let file of fileList){
 
-const search=document.getElementById("search").value.toLowerCase();
+files.push(file);
 
-mods
-.filter(m=>m.title.toLowerCase().includes(search))
-.forEach(mod=>{
+let versionMatch = file.name.match(/1\.\d+/);
+let version = versionMatch ? versionMatch[0] : "Unknown";
 
-const checked = selected.has(mod.project_id) ? "checked" : "";
+let loader = detectLoader(file.name);
 
-const div=document.createElement("div");
-div.className="card";
-
-div.innerHTML=`
-<img src="${mod.icon_url}" width="48"><br>
-<label>
-<input type="checkbox" ${checked}
-onchange="toggle('${mod.project_id}')">
-${mod.title}
-</label>
+let div = document.createElement("div");
+div.className="file";
+div.innerHTML = `
+${file.name}<br>
+Version: ${version} | Loader: ${loader}
 `;
 
-grid.appendChild(div);
+list.appendChild(div);
+}
+
+}
+
+function startAd(){
+
+if(files.length === 0){
+alert("Upload mods first!");
+return;
+}
+
+window.open("https://example.com","_blank");
+
+let btn = document.getElementById("download");
+let time = 10;
+
+let timer = setInterval(()=>{
+btn.innerText = "Waiting "+time+"s...";
+time--;
+
+if(time<0){
+clearInterval(timer);
+unlocked = true;
+btn.disabled = false;
+btn.classList.add("active");
+btn.innerText="Download Updated Mods";
+}
+},1000);
+
+}
+
+function downloadAll(){
+
+if(!unlocked) return;
+
+let targetVersion = document.getElementById("targetVersion").value;
+let loader = document.getElementById("loader").value;
+
+files.forEach(file=>{
+
+let newName = file.name
+.replace(/1\.\d+/, targetVersion)
+.replace(/forge|fabric|neoforge/i, loader);
+
+const url = URL.createObjectURL(file);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "updated-" + newName;
+a.click();
 
 });
-}
-
-function toggle(id){
-if(selected.has(id)) selected.delete(id);
-else selected.set(id,true);
-}
-
-function selectGroup(group){
-
-const keywords={
-fps:["sodium","lithium","starlight","ferrite"],
-performance:["optimization","performance"],
-qol:["better","hud","utility"],
-shaders:["iris","shader"]
-};
-
-mods.forEach(m=>{
-if(!keywords[group]) return;
-
-keywords[group].forEach(k=>{
-if(m.title.toLowerCase().includes(k)){
-selected.set(m.project_id,true);
-}
-});
-});
-
-render();
-}
-
-async function downloadAll(){
-
-let delay=0;
-
-for(const id of selected.keys()){
-
-setTimeout(async ()=>{
-
-const version=document.getElementById("version").value;
-const loader=document.getElementById("loader").value;
-
-const res = await fetch(`https://api.modrinth.com/v2/project/${id}/version`);
-const versions = await res.json();
-
-const match = versions.find(v =>
-v.game_versions.includes(version) &&
-v.loaders.includes(loader)
-);
-
-if(match){
-window.open(match.files[0].url,"_blank");
-}else{
-window.open(`https://modrinth.com/mod/${id}`,"_blank");
-}
-
-},delay);
-
-delay+=1200;
 
 }
-
-}
-
-loadMods();
 
 </script>
-
-<footer style="text-align:center;padding:20px;font-size:12px">
-Minecraft Modpack Builder • CraftPacks • Modrinth Downloader • Fabric Mods • Forge Mods
-</footer>
 
 </body>
 </html>
