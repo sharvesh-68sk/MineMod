@@ -2,139 +2,108 @@
 
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CraftPacks - Smart Modpack Builder</title>
+
+<title>CraftPacks - Ultimate Minecraft Modpack Builder</title>
+<meta name="description" content="Create Minecraft modpacks instantly. Auto download compatible mods from Modrinth with version matching, groups and shaders.">
+<meta name="keywords" content="minecraft modpack builder, modrinth downloader, craftpacks, minecraft mods">
+<meta name="robots" content="index, follow">
 
 <style>
 body{background:#0b1120;color:white;font-family:Arial;margin:0}
 header{padding:15px;background:#020617;text-align:center;font-size:22px}
-.controls{padding:10px;text-align:center}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;padding:20px}
+.controls{text-align:center;padding:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px;padding:20px}
 .card{background:#111827;padding:15px;border-radius:10px}
-.group{padding:15px;text-align:center}
-button{padding:10px 15px;margin:5px;border:none;border-radius:8px;cursor:pointer}
+button{padding:8px 12px;margin:5px;border:none;border-radius:8px;cursor:pointer}
+input{padding:8px;border-radius:6px;border:none}
 </style>
-<title>CraftPacks - Minecraft Modpack Builder</title>
-<meta name="description" content="CraftPacks lets you build Minecraft modpacks and download mods directly from Modrinth.">
-<meta name="keywords" content="Minecraft modpack builder, Modrinth downloader, CraftPacks, Minecraft mods">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="https://sharvesh-68sk.github.io/craftpacks/">
 
 </head>
-<footer style="text-align:center;padding:20px;font-size:12px;opacity:.7">
-Minecraft Modpack Builder • Modrinth Mods • CurseForge Mods • FPS Boost Mods • Fabric Mods • Forge Mods • Minecraft Shaders • Resource Packs
-</footer>
 
 <body>
 
-<header><title>CraftPacks - Minecraft Modpack Builder</title>
-<meta name="description" content="Build Minecraft modpacks with CraftPacks. Download compatible mods, shaders and resource packs from Modrinth and CurseForge.">
-<meta name="keywords" content="minecraft modpack builder, craftpacks, modrinth downloader, forge mods, fabric mods">
-<meta name="robots" content="index, follow">
-</header>
-<section style="max-width:900px;margin:auto;padding:20px;text-align:center">
-<h1>CraftPacks Minecraft Modpack Builder</h1>
-<p>
-CraftPacks is a Minecraft modpack builder that lets players select compatible mods,
-resource packs, and shaders. Choose your Minecraft version, loader (Fabric or Forge),
-and download all mods from Modrinth and CurseForge in one click.
-</p>
+<header>🎮 CraftPacks Ultimate Builder</header>
+
+<section style="text-align:center;padding:15px">
+<h1>Minecraft Modpack Builder</h1>
+<p>Select mods and auto download from Modrinth</p>
 </section>
 
 <div class="controls">
-<select id="version">
-<option value="1.20.1">1.20.1</option>
-<option value="1.19.4">1.19.4</option>
+<input type="text" id="search" placeholder="Search mods..." oninput="render()">
+
+<select id="version" onchange="render()">
+<option>1.20.1</option>
+<option>1.19.4</option>
 </select>
 
-<select id="loader">
+<select id="loader" onchange="render()">
 <option value="fabric">Fabric</option>
 <option value="forge">Forge</option>
+<option value="quilt">Quilt</option>
 </select>
 </div>
 
-<div class="group">
-<b>Quick Groups</b><br>
-<button onclick="selectGroup('fps')">⚡ FPS Boost</button>
-<button onclick="selectGroup('shaders')">🌅 Low End Shaders</button>
-<button onclick="selectGroup('pvp')">⚔️ PvP</button>
+<div class="controls">
+<button onclick="selectGroup('fps')">FPS</button>
+<button onclick="selectGroup('performance')">Performance</button>
+<button onclick="selectGroup('qol')">QoL</button>
+<button onclick="selectGroup('shaders')">Shaders</button>
+<button onclick="selectGroup('pvp')">PvP</button>
+<button onclick="selectGroup('explore')">Explore</button>
+<button onclick="selectGroup('tech')">Tech</button>
+<button onclick="selectGroup('magic')">Magic</button>
+<button onclick="selectGroup('decor')">Decor</button>
+<button onclick="selectGroup('vanilla')">Vanilla+</button>
 </div>
 
 <div class="grid" id="mods"></div>
 
-<div style="text-align:center">
+<div style="text-align:center;padding:20px">
 <button onclick="downloadAll()">Download Selected</button>
+<button onclick="exportPack()">Export .mrpack</button>
 </div>
 
 <script>
-const mods=[
-{
-name:"Sodium",
-group:"fps",
-loader:"fabric",
-versions:["1.20.1","1.19.4"],
-site:"modrinth",
-slug:"sodium"
-},
-{
-name:"Lithium",
-group:"fps",
-loader:"fabric",
-versions:["1.20.1","1.19.4"],
-site:"modrinth",
-slug:"lithium"
-},
-{
-name:"Iris",
-group:"shaders",
-loader:"fabric",
-versions:["1.20.1"],
-site:"modrinth",
-slug:"iris"
-},
-{
-name:"Complementary Shaders",
-group:"shaders",
-loader:"any",
-versions:["1.20.1"],
-site:"modrinth",
-slug:"complementary-reimagined"
-},
-{
-name:"Better PvP",
-group:"pvp",
-loader:"forge",
-versions:["1.20.1"],
-site:"modrinth",
-slug:"better-pvp"
-}
-];
 
-let selected=new Set();
+let selected = new Map();
+let mods = [];
+
+async function loadMods(){
+
+const query="minecraft";
+const res = await fetch(`https://api.modrinth.com/v2/search?query=${query}&limit=150`);
+const data = await res.json();
+
+mods = data.hits;
+render();
+
+}
 
 function render(){
-const version=document.getElementById("version").value;
-const loader=document.getElementById("loader").value;
 
 const grid=document.getElementById("mods");
 grid.innerHTML="";
 
+const search=document.getElementById("search").value.toLowerCase();
+
 mods
-.filter(m=>m.versions.includes(version))
-.filter(m=>m.loader==="any"||m.loader===loader)
+.filter(m=>m.title.toLowerCase().includes(search))
 .forEach(mod=>{
 
 const div=document.createElement("div");
 div.className="card";
 
 div.innerHTML=`
-<label>
-<input type="checkbox" onchange="toggle('${mod.name}')">
-${mod.name}
-</label>
+<img src="${mod.icon_url}" width="40">
 <br>
-<small>${mod.group}</small>
+<label>
+<input type="checkbox" onchange="toggle('${mod.project_id}')">
+${mod.title}
+</label>
 `;
 
 grid.appendChild(div);
@@ -142,44 +111,79 @@ grid.appendChild(div);
 });
 }
 
-function toggle(name){
-if(selected.has(name)) selected.delete(name);
-else selected.add(name);
+function toggle(id){
+
+if(selected.has(id)) selected.delete(id);
+else selected.set(id,true);
+
 }
 
 function selectGroup(group){
+
+// simple auto selection by keywords
 mods
-.filter(m=>m.group===group)
-.forEach(m=>selected.add(m.name));
-render();
-}
-
-function downloadAll(){
-let i=0;
-
-mods
-.filter(m=>selected.has(m.name))
-.forEach(mod=>{
-
-let url="";
-
-if(mod.site==="modrinth")
-url=`https://modrinth.com/mod/${mod.slug}/versions`;
-
-if(mod.site==="curseforge")
-url=`https://www.curseforge.com/minecraft/mc-mods/${mod.slug}`;
-
-setTimeout(()=>{
-window.open(url,"_blank");
-},i*800);
-
-i++;
-
-});
-}
+.filter(m=>m.title.toLowerCase().includes(group))
+.forEach(m=>selected.set(m.project_id,true));
 
 render();
+
+}
+
+async function downloadAll(){
+
+let delay=0;
+
+for(const id of selected.keys()){
+
+setTimeout(async ()=>{
+
+const version=document.getElementById("version").value;
+const loader=document.getElementById("loader").value;
+
+const res = await fetch(`https://api.modrinth.com/v2/project/${id}/version`);
+const versions = await res.json();
+
+const match = versions.find(v =>
+v.game_versions.includes(version) &&
+v.loaders.includes(loader)
+);
+
+if(match){
+window.open(match.files[0].url,"_blank");
+}else{
+window.open(`https://modrinth.com/mod/${id}`,"_blank");
+}
+
+},delay);
+
+delay+=1200;
+
+}
+
+}
+
+function exportPack(){
+
+const pack={
+name:"CraftPacks",
+mods:[...selected.keys()]
+};
+
+const blob = new Blob([JSON.stringify(pack)],{type:"application/json"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="craftpacks.mrpack";
+a.click();
+
+}
+
+loadMods();
+
 </script>
+
+<footer style="text-align:center;padding:20px;font-size:12px">
+Minecraft Modpack Builder • CraftPacks • Modrinth Downloader • Fabric Mods • Forge Mods
+</footer>
 
 </body>
 </html>
