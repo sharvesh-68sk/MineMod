@@ -162,23 +162,16 @@ alert("Upload mods first!");
 return;
 }
 
-window.open("https://example.com","_blank");
+// open affiliate/ad link
+window.open(https://linkvertise.com/?publisherClosed=true&affiliate_id=4732491);
+
+// unlock immediately
+unlocked = true;
 
 let btn = document.getElementById("download");
-let time = 10;
-
-let timer = setInterval(()=>{
-btn.innerText = "Waiting "+time+"s...";
-time--;
-
-if(time<0){
-clearInterval(timer);
-unlocked = true;
 btn.disabled = false;
 btn.classList.add("active");
 btn.innerText="Download Updated Mods";
-}
-},1000);
 
 }
 
